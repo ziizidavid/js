@@ -1,0 +1,39 @@
+name: Auto Convert M3U to JSON
+
+on:
+  schedule:
+    # Berjalan otomatis setiap 6 jam (bisa disesuaikan menggunakan cron)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Tombol manual untuk menjalankan workflow kapan saja
+
+jobs:
+  convert-and-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Diperlukan agar GitHub Actions bisa melakukan commit/push ke repo
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Run Converter Script
+      run: python convert.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        # Mengecek apakah ada perubahan pada file JSON
+        if git status --porcelain | grep -q "${{ github.workspace }}/iptv.json"; then
+          git add iptv.json
+          git commit -m "Auto-update: Sync M3U to JSON"
+          git push
+        else
+          echo "Tidak ada perubahan pada data IPTV."
+        fi
